@@ -2,8 +2,8 @@ import os
 from typing import Dict, Any
 from dotenv import load_dotenv
 
-# Load environment variables from .env.local file
-load_dotenv('.env.local')
+# Load environment variables from .env file
+load_dotenv('.env')
 
 class Config:
     """Application configuration settings"""

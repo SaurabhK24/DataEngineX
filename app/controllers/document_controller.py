@@ -383,11 +383,25 @@ async def send_document_chat_message(
         context_info = ""
         if request.context:
             if request.context.get('highlights'):
-                # Get highlighted text
-                highlights_result = supabase.table('highlights').select('highlight_text').in_('id', request.context['highlights']).execute()
-                if highlights_result.data:
-                    highlighted_texts = [h['highlight_text'] for h in highlights_result.data]
-                    context_info += f"\n\nHighlighted text:\n" + "\n".join(highlighted_texts)
+                # Validate and filter highlight IDs to ensure they are proper UUID strings
+                valid_highlight_ids = []
+                for hid in request.context.get('highlights', []):
+                    try:
+                        # Attempt to cast to UUID to validate; store as str for Supabase query
+                        valid_highlight_ids.append(str(UUID(str(hid))))
+                    except (ValueError, TypeError):
+                        # Ignore invalid UUIDs
+                        continue
+
+                if valid_highlight_ids:
+                    # Get highlighted text only for valid IDs
+                    highlights_result = supabase.table('highlights').select('highlight_text').in_('id', valid_highlight_ids).execute()
+                    if highlights_result.data:
+                        highlighted_texts = [h['highlight_text'] for h in highlights_result.data]
+                        context_info += f"\n\nHighlighted text:\n" + "\n".join(highlighted_texts)
+                else:
+                    # No valid highlight IDs provided; warn but continue gracefully
+                    print("Warning: No valid highlight UUIDs provided in chat context")
             
             if request.context.get('page'):
                 context_info += f"\n\nPage reference: {request.context['page']}"
@@ -415,7 +429,7 @@ async def send_document_chat_message(
             'role': 'assistant',
             'content': ai_response,
             'context': request.context or {},
-            'sources': request.context.get('highlights', []) if request.context else []
+            'sources': valid_highlight_ids if request.context else []
         }).execute()
         
         # Log activity
@@ -430,7 +444,7 @@ async def send_document_chat_message(
         return DocumentChatResponse(
             id=ai_message_result.data[0]['id'],
             message=ai_response,
-            sources=request.context.get('highlights', []) if request.context else [],
+            sources=valid_highlight_ids if request.context else [],
             timestamp=ai_message_result.data[0]['created_at']
         )
         

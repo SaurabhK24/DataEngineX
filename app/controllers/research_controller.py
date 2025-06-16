@@ -31,7 +31,7 @@ BASE_URL = "https://api.llama.com/v1"
 client = OpenAI(
     api_key=os.environ.get("LLAMA_API_KEY"), 
     base_url="https://api.llama.com/v1/chat/completions"
-)
+) if os.environ.get("LLAMA_API_KEY") else None
 
 class ResearchController:
     """Controller for research platform functionality - NotebookLM competitor"""

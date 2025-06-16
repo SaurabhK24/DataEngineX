@@ -36,14 +36,20 @@ async def get_user_knowledgebases(
 ):
     """Get all knowledge bases for the current user"""
     try:
+        print(f"DEBUG: get_user_knowledgebases called with user_id: {user_id}")
         supabase = get_supabase()
         
         # Direct query instead of database function
         result = supabase.table('knowledge_bases').select('*').eq('user_id', str(user_id)).order('updated_at', desc=True).execute()
         
+        print(f"DEBUG: Database query result: {result}")
+        print(f"DEBUG: Number of knowledge bases found: {len(result.data) if result.data else 0}")
+        
         if result.data:
+            print(f"DEBUG: Found {len(result.data)} knowledge bases for user {user_id}")
             knowledge_bases = []
             for kb_data in result.data:
+                print(f"DEBUG: Processing KB: {kb_data['name']} (id: {kb_data['id']})")
                 # Get paper count separately
                 paper_count_result = supabase.table('knowledge_base_papers').select('id', count='exact').eq('knowledge_base_id', kb_data['id']).execute()
                 paper_count = paper_count_result.count or 0
@@ -61,8 +67,10 @@ async def get_user_knowledgebases(
                     is_public=kb_data.get('is_public', False)
                 )
                 knowledge_bases.append(kb)
+            print(f"DEBUG: Returning {len(knowledge_bases)} knowledge bases")
             return knowledge_bases
         
+        print(f"DEBUG: No knowledge bases found for user {user_id}, returning empty list")
         return []
         
     except Exception as e:
